@@ -4,9 +4,9 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import select
 
 
-from db.database import SessionDep
-from models.user import UserCreate, UserDB, UserPublic, UserUpdate
-from db.users import get_current_active_admin_user, get_current_active_user
+from app.db.database import SessionDep
+from app.db.users import get_current_active_admin_user, get_current_active_user
+from app.models.user import UserCreate, UserDB, UserPublic, UserUpdate
 
 
 users_routers = APIRouter(prefix="/users", tags=["task"])

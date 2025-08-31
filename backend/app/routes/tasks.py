@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import select
 
 
-from db.database import SessionDep
-from db.users import get_current_active_user
-from models.task import TaskDB
-from models.user import UserPublic
+from app.db.database import SessionDep
+from app.db.users import get_current_active_user
+from app.models.task import TaskDB
+from app.models.user import UserPublic
 
 
 tasks_routers = APIRouter(prefix="/tasks", tags=["task"])

@@ -6,9 +6,9 @@ import jwt
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
-from core.config import HASH_ALGORITHM, SECRET_KEY
-from models.token import TokenData
-from models.user import UserPublic
+from app.core.config import HASH_ALGORITHM, SECRET_KEY
+from app.models.token import TokenData
+from app.models.user import UserPublic
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")

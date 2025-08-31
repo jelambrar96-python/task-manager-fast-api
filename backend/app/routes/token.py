@@ -6,20 +6,21 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from models.token import Token
-from core.config import ACCESS_TOKEN_EXPIRE_MINUTES
-from core.security import create_access_token, authenticate_user
+
+from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.security import create_access_token
+from app.db.users import authenticate_user
+from app.models.token import Token
 
 
-token_routes = APIRouter(prefix="/users", tags=["users"])
+token_routes = APIRouter(prefix="/token", tags=["token"])
 
 
-@token_routes.post("/token")
+@token_routes.post("/")
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
     user = authenticate_user(form_data.username, form_data.password)
-    user = None
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

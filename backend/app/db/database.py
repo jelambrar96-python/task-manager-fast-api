@@ -4,10 +4,10 @@ from typing import Annotated
 from fastapi import Depends
 from sqlmodel import create_engine, Field, select, Session, SQLModel
 
-from core.config import DATABASE_URL, SUPERUSER_PASSWORD, SUPERUSER_USERNAME
-from core.security import get_password_hash
-from models.task import TaskDB, TaskPriority
-from models.user import UserDB
+from app.core.config import DATABASE_URL, SUPERUSER_PASSWORD, SUPERUSER_USERNAME
+from app.core.security import get_password_hash
+from app.models.task import TaskDB, TaskPriority
+from app.models.user import UserDB
 
 # engine = create_engine(DATABASE_URL)
 # SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

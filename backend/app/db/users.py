@@ -6,11 +6,11 @@ from fastapi import Depends, HTTPException, status
 from jwt.exceptions import InvalidTokenError
 from sqlmodel import select
 
-from core.config import HASH_ALGORITHM, SECRET_KEY
-from core.security import verify_password, oauth2_scheme
-from db.database import get_session
-from models.token import TokenData
-from models.user import UserPublic, UserDB
+from app.core.config import HASH_ALGORITHM, SECRET_KEY
+from app.core.security import verify_password, oauth2_scheme
+from app.db.database import get_session
+from app.models.token import TokenData
+from app.models.user import UserPublic, UserDB
 
 
 

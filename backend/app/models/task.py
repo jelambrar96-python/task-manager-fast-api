@@ -2,9 +2,9 @@
 from datetime import datetime
 
 from sqlmodel import Field, ForeignKey, SQLModel
-
-from models.user import UserDB
 from sqlmodel import Session, select
+
+from app.models.user import UserDB
 
 
 class TaskPriority(SQLModel, table=True):
@@ -45,3 +45,13 @@ class TaskDB(TaskBase, table=True):
 
 class TaskPublic(TaskBase):
     pass
+
+
+class TaskComment(SQLModel, table=True):
+    
+    __tablename__ = "comments"
+
+    id : int | None = Field(default=None, primary_key=True)
+    task_id : int =  Field(foreign_key="tasks.id", nullable=False)
+    created_by : int =  Field(foreign_key="users.id", nullable=False)
+    created_at : datetime = Field(nullable=False, index=True)

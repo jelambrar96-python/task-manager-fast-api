@@ -18,6 +18,12 @@ bcrypt = "==4.0.1"
 pytest = "*"
 
 [dev-packages]
+pytest = "*"
+anyio = "*"
+pytest-tornasync = "*"
+pytest-trio = "*"
+pytest-twisted = "*"
+twisted = "*"
 
 [requires]
 python_version = "3.12"

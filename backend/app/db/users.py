@@ -14,8 +14,8 @@ from app.models.user import UserPublic, UserDB
 
 
 
-def authenticate_user(username: str, password: str):
-    user = get_user_by_username(username)
+async def authenticate_user(username: str, password: str):
+    user = await get_user_by_username(username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -39,7 +39,7 @@ async def get_current_user(
         token_data = TokenData(username=username)
     except InvalidTokenError:
         raise credentials_exception
-    user = get_user_by_username(token_data.username)
+    user = await get_user_by_username(token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -57,7 +57,7 @@ async def get_current_active_admin_user(
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
     if not current_user.isadmin:
-        raise HTTPException(status_code=401, detail="No permited")
+        raise HTTPException(status_code=401, detail="Not enough permissions")
     return current_user
 
 

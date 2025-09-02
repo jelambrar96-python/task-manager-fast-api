@@ -68,6 +68,7 @@ class TaskCreate(TaskBase):
 
 
 class TaskUpdate(TaskBase):
+    id : int | None
     title : str | None = None
     description : str | None = None
     priority : str | None = None
@@ -80,27 +81,32 @@ class TaskUpdate(TaskBase):
 # task comments
 
 class TaskCommentBase(SQLModel):
-    task_id : int =  Field(foreign_key="tasks.id", nullable=False, index=True)
-    description : str = Field(default="")
-    created_by : int =  Field(foreign_key="users.id", nullable=False)
-    created_at : datetime = Field(nullable=False, index=True)
+    task_id : int = None
+    description : str = None
+    created_by : int = None
 
 
-class TaskComment(SQLModel, table=True):
+class TaskCommentDB(TaskCommentBase, table=True):
     
     __tablename__ = "comments"
 
     id : int | None = Field(default=None, primary_key=True)
+    task_id : int =  Field(foreign_key="tasks.id", nullable=False, index=True)
+    description : str = Field(nullable=False)
+    created_by : int =  Field(foreign_key="users.id", nullable=False)
+    created_at : datetime = Field(nullable=False, index=True)
     updated_at : datetime = Field(nullable=False, index=True)
 
 
 class TaskCommentCreate(TaskCommentBase):
-    pass
+    description : str = None
 
 
 class TaskCommentUpdate(TaskCommentBase):
-    description : str = Field(default="")
+    description : str
 
 
 class TaskCommentPublic(TaskCommentBase):
-    updated_at : datetime = Field(nullable=False, index=True)
+    id : int
+    updated_at : datetime = None
+    created_at : datetime = None

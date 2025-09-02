@@ -101,14 +101,16 @@ def update_me(
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
+    if useru.id != current_user.id:
+        raise HTTPException(status_code=401, detail="Invalid change this user")
     user_id = current_user.id
     user_db = session.get(UserDB, user_id)
     if not user_db:
         raise HTTPException(status_code=404, detail="User not found")
     # Hash password if provided
+    user_data = useru.model_dump(exclude_unset=True)
     if "password" in user_data:
         user_data["hashed_password"] = get_password_hash(user_data.pop("password"))
-    user_data = useru.model_dump(exclude_unset=True)
     user_db.sqlmodel_update(user_data)
     session.add(user_db)
     session.commit()

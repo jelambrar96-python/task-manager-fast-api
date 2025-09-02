@@ -16,6 +16,10 @@ psycopg2-binary = "*"
 sqlalchemy = "*"
 bcrypt = "==4.0.1"
 pytest = "*"
+redis = "*"
+fastapi-limiter = "*"
+aioredis = "*"
+starlette = "*"
 
 [dev-packages]
 pytest = "*"

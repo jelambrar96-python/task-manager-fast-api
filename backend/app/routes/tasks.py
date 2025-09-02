@@ -7,7 +7,7 @@ from sqlmodel import select, delete
 
 from app.db.database import SessionDep
 from app.db.users import get_current_active_user
-from app.db.tasks import priority_desc
+from app.db.tasks import priority_desc, get_current_task, get_current_task_comment
 from app.models.task import TaskCreate, TaskDB, TaskPublic, TaskUpdate
 from app.models.task import TaskCommentCreate, TaskCommentPublic, TaskCommentDB, TaskCommentUpdate
 from app.models.user import UserPublic
@@ -15,6 +15,9 @@ from app.models.user import UserPublic
 
 tasks_routers = APIRouter(prefix="/tasks", tags=["task"])
 
+# -------------------------------------------------------------------------------------------------
+# task 
+# -------------------------------------------------------------------------------------------------
 
 @tasks_routers.get("/", response_model=List[TaskPublic])
 async def get_tasks(
@@ -42,16 +45,14 @@ async def get_tasks(
 
 @tasks_routers.get("/{task_id}", response_model=TaskPublic)
 async def get_task(
+    task: Annotated[TaskDB, Depends(get_current_task)],
     task_id: int,
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
-    task_db = session.get(TaskDB, task_id)
-    if not task_db:
-        raise HTTPException(status_code=404, detail="Task not found")
-    # return data from taskpublic
-    task_db_data = task_db.model_dump()
-    task_db_data["priority"] = task_db.priority.desc if task_db.priority else None
+    
+    task_db_data = task.model_dump()
+    task_db_data["priority"] = task.priority.desc if task.priority else None
     return TaskPublic.model_validate(task_db_data)
 
 
@@ -62,12 +63,7 @@ async def post_task(
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ) -> TaskPublic:
     # get data
-    priority_id = None
-    if task.priority:
-        priority = priority_desc(task.priority, session=session)
-        if not priority:
-            return HTTPException(status_code=404, detail="Priority not found")
-        priority_id = priority.id
+    priority = await priority_desc(task.priority, session=session)
     # db
     current_time = datetime.now(timezone.utc)
     task_db = TaskDB(
@@ -79,7 +75,7 @@ async def post_task(
         completed=task.completed,
         created_by=current_user.id,
         updated_at=current_time,
-        priority_id=priority_id,
+        priority_id=priority.id,
     )
     session.add(task_db)
     session.commit()
@@ -92,13 +88,11 @@ async def post_task(
 
 @tasks_routers.delete("/{task_id}")
 async def delete_task(
+    task: Annotated[TaskDB, Depends(get_current_task)],
     task_id: int,
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)]
 ):
-    task = session.get(TaskDB, task_id)
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
     task_db_data = task.model_dump()
     task_db_data["priority"] = task.priority.desc if task.priority else None
     session.delete(task)
@@ -114,20 +108,15 @@ async def delete_task(
 
 @tasks_routers.put("/{task_id}", response_model=TaskPublic)
 async def update_task(
+    task_db: Annotated[TaskDB, Depends(get_current_task)],
     task: TaskUpdate,
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)]
 ):
-    task_db = session.exec(select(TaskDB).where(TaskDB.id == task.id)).first()
-    if not task_db:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
     task_data = task.model_dump(exclude_unset=True)
     task_data["updated_at"] = datetime.now(timezone.utc)
     if "priority" in task_data:
-        priority = priority_desc(task_data["priority"], session=session)
-        if not priority:
-            return HTTPException(status_code=404, detail="Priority not found")
+        priority = await priority_desc(task_data["priority"], session=session)
         task_data["priority_id"] = priority.id
     
     task_db.sqlmodel_update(task_data)
@@ -139,25 +128,24 @@ async def update_task(
     task_db_data["priority"] = task_db.priority.desc if task_db.priority else None
     return TaskPublic.model_validate(task_db_data)
 
+# -------------------------------------------------------------------------------------------------
 # task comments
+# -------------------------------------------------------------------------------------------------
 
 @tasks_routers.post("/{task_id}/comments", response_model=TaskCommentPublic)
 async def post_comments(
-    task_id: int,
+    task: Annotated[TaskDB, Depends(get_current_task)],
     taskComment: TaskCommentCreate,
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
-    task_db = session.exec(select(TaskDB).where(TaskDB.id == task_id)).first()
-    if not task_db:
-        raise HTTPException(status_code=404, detail="Task not found")
     if not taskComment.description:
         raise HTTPException(status_code=400, detail="Invalid task comment")        
     current_time = datetime.now(timezone.utc)
     taskcomment_db = TaskCommentDB.model_validate(
         taskComment,
         update={
-            "task_id": task_id,
+            "task_id": task.id,
             "description": taskComment.description,
             "created_by": current_user.id,
             "created_at": current_time,
@@ -172,89 +160,56 @@ async def post_comments(
 
 @tasks_routers.get("/{task_id}/comments/", response_model=List[TaskCommentPublic])
 async def get_taskcomments(
-    task_id: int,
+    task: Annotated[TaskDB, Depends(get_current_task)],
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
-    task_db = session.exec(select(TaskDB).where(TaskDB.id == task_id)).first()
-    if not task_db:
-        raise HTTPException(status_code=404, detail="Task not found")
     taskcommments = session.exec(
         select(TaskCommentDB)
-            .where(TaskCommentDB.task_id == task_id)
+            .where(TaskCommentDB.task_id == task.id)
             .order_by(TaskCommentDB.created_at))
     return [ TaskCommentPublic.model_validate(item) for item in taskcommments ]
 
 
-@tasks_routers.get("/{task_id}/comments/{comment_id}", response_model=TaskCommentPublic)
+@tasks_routers.get("/{task_id}/comments/{task_comment_id}", response_model=TaskCommentPublic)
 async def get_single_taskcomment(
-    task_id : int, 
-    comment_id: int,
+    task_comment: Annotated[TaskCommentDB, Depends(get_current_task_comment)],
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
-    task_db = session.exec(select(TaskDB).where(TaskDB.id == task_id)).first()
-    if not task_db:
-        raise HTTPException(status_code=404, detail="Task not found")
-    taskcommment = session.exec(select(TaskCommentDB)
-            .where(TaskCommentDB.task_id == task_id)
-            .where(TaskCommentDB.id == comment_id)
-        ).first()
-    if not taskcommment:
-        raise HTTPException(status_code=404, detail="Task Commentary not found")
-    return TaskCommentPublic.model_validate(taskcommment)
+    return TaskCommentPublic.model_validate(task_comment)
 
 
-@tasks_routers.delete("/{task_id}/comments/{comment_id}")
+@tasks_routers.delete("/{task_id}/comments/{task_comment_id}")
 async def delete_comment(
-    task_id: int,
-    comment_id: int,
+    task_comment: Annotated[TaskCommentDB, Depends(get_current_task_comment)],
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
-    task_db = session.exec(select(TaskDB).where(TaskDB.id == task_id)).first()
-    if not task_db:
-        raise HTTPException(status_code=404, detail="Task not found")
-    taskcommment = session.exec(
-    select(TaskCommentDB)
-        .where(TaskCommentDB.task_id == task_id)
-        .where(TaskCommentDB.id == comment_id)
-    ).first()
-    if not taskcommment:
-        raise HTTPException(status_code=404, detail="Task Commentary not found")
-    taskcomment_data = taskcommment.model_dump()
-    session.delete(taskcommment)
+    taskcomment_data = task_comment.model_dump()
+    session.delete(task_comment)
     session.commit()
     taskcomment_public = TaskCommentPublic.model_validate(taskcomment_data).model_dump()
     return { "success": True, "task": taskcomment_public }
 
 
-@tasks_routers.put("/{task_id}/comments/{comment_id}", response_model=TaskCommentPublic)
+@tasks_routers.put("/{task_id}/comments/{task_comment_id}", response_model=TaskCommentPublic)
 async def update_comment(
-    task_id: int,
-    comment_id: int,
+    task_comment: Annotated[TaskCommentDB, Depends(get_current_task_comment)],
     taskcomment_update: TaskCommentUpdate,
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
-    task_db = session.exec(select(TaskDB).where(TaskDB.id == task_id)).first()
-    if not task_db:
-        raise HTTPException(status_code=404, detail="Task not found")
-    taskcommment = session.exec(
-    select(TaskCommentDB)
-        .where(TaskCommentDB.task_id == task_id)
-        .where(TaskCommentDB.id == comment_id)
-    ).first()
-    if not taskcommment:
-        raise HTTPException(status_code=404, detail="Task Commentary not found")
     taskcomment_data = taskcomment_update.model_dump(exclude_unset=True)
-    taskcommment.sqlmodel_update(taskcomment_data)
-    session.add(taskcommment)
+    task_comment.sqlmodel_update(taskcomment_data)
+    session.add(task_comment)
     session.commit()
-    session.refresh(taskcommment)
-    return TaskCommentPublic.model_validate(taskcommment)
+    session.refresh(task_comment)
+    return TaskCommentPublic.model_validate(task_comment)
 
+# -------------------------------------------------------------------------------------------------
 # statistic
+# -------------------------------------------------------------------------------------------------
 
 @tasks_routers.get("/statistics")
 async def get_statistics(

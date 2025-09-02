@@ -4,7 +4,7 @@ from app.core.config import CORS_HEADERS, CORS_METHODS, CORS_ORIGINS
 
 
 origins = [ "http://localhost", "http://localhost:8080", "http://frontend", "http://frontend:8080"] \
-        if not CORS_ORIGINS is None else CORS_ORIGINS.split(",")
+        if not CORS_ORIGINS else CORS_ORIGINS.split(",")
 
 methods = ["GET", "POST", "PUT", "DELETE"] if not CORS_METHODS else CORS_METHODS.split(",")
 headers = ["Authorization", "Content-Type"] if not CORS_HEADERS else CORS_HEADERS.split(",")

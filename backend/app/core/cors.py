@@ -6,6 +6,7 @@ origins = [
     "http://localhost:8080",
     "http://frontend",
     "http://frontend:8080",
+    "*"
 ]
 
 

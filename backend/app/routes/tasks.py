@@ -9,7 +9,7 @@ from app.db.database import SessionDep
 from app.db.users import get_current_active_user
 from app.db.tasks import priority_desc
 from app.models.task import TaskCreate, TaskDB, TaskPublic, TaskUpdate
-from app.models.task import TaskCommentCreate, TaskCommentPublic, TaskCommentDB #, TaskCommentPublic, TaskUpdate
+from app.models.task import TaskCommentCreate, TaskCommentPublic, TaskCommentDB, TaskCommentUpdate
 from app.models.user import UserPublic
 
 
@@ -196,9 +196,9 @@ async def get_single_taskcomment(
     task_db = session.exec(select(TaskDB).where(TaskDB.id == task_id)).first()
     if not task_db:
         raise HTTPException(status_code=404, detail="Task not found")
-    taskcommment = session.exec(
-        select(TaskCommentDB)
-            .where(TaskCommentDB.task_id == task_id and TaskCommentDB.id == comment_id)
+    taskcommment = session.exec(select(TaskCommentDB)
+            .where(TaskCommentDB.task_id == task_id)
+            .where(TaskCommentDB.id == comment_id)
         ).first()
     if not taskcommment:
         raise HTTPException(status_code=404, detail="Task Commentary not found")
@@ -217,7 +217,8 @@ async def delete_comment(
         raise HTTPException(status_code=404, detail="Task not found")
     taskcommment = session.exec(
     select(TaskCommentDB)
-        .where(TaskCommentDB.task_id == task_id and TaskCommentDB.id == comment_id)
+        .where(TaskCommentDB.task_id == task_id)
+        .where(TaskCommentDB.id == comment_id)
     ).first()
     if not taskcommment:
         raise HTTPException(status_code=404, detail="Task Commentary not found")
@@ -232,6 +233,7 @@ async def delete_comment(
 async def update_comment(
     task_id: int,
     comment_id: int,
+    taskcomment_update: TaskCommentUpdate,
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
@@ -240,11 +242,12 @@ async def update_comment(
         raise HTTPException(status_code=404, detail="Task not found")
     taskcommment = session.exec(
     select(TaskCommentDB)
-        .where(TaskCommentDB.task_id == task_id and TaskCommentDB.id == comment_id)
+        .where(TaskCommentDB.task_id == task_id)
+        .where(TaskCommentDB.id == comment_id)
     ).first()
     if not taskcommment:
         raise HTTPException(status_code=404, detail="Task Commentary not found")
-    taskcomment_data = taskcommment.model_dump(exclude_unset=True)
+    taskcomment_data = taskcomment_update.model_dump(exclude_unset=True)
     taskcommment.sqlmodel_update(taskcomment_data)
     session.add(taskcommment)
     session.commit()

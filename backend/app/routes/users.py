@@ -67,7 +67,7 @@ def read_user(
     return user
 
 
-@users_routers.patch("/{user_id}", response_model=UserPublic)
+@users_routers.put("/{user_id}", response_model=UserPublic)
 def update_user(
     user_id: int,
     useru: UserUpdate,

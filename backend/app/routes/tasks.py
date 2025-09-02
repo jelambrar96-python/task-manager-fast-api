@@ -16,13 +16,13 @@ from app.models.user import UserPublic
 tasks_routers = APIRouter(prefix="/tasks", tags=["task"])
 
 
-@tasks_routers.get("/", response_model=list[TaskPublic])
+@tasks_routers.get("/", response_model=List[TaskPublic])
 async def get_tasks(
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
     offset: int = 0,
     limit: Annotated[int, Query(le=20)] = 20
-) -> list[TaskPublic]:
+) -> List[TaskPublic]:
     tasks = session.exec(select(TaskDB).offset(offset).limit(limit)).all()
     return [
         TaskPublic(
@@ -170,7 +170,7 @@ async def post_comments(
     return TaskCommentPublic.model_validate(taskcomment_db)
 
 
-@tasks_routers.get("/{task_id}/comments/", response_class=List[TaskCommentPublic])
+@tasks_routers.get("/{task_id}/comments/", response_model=List[TaskCommentPublic])
 async def get_taskcomments(
     task_id: int,
     session: SessionDep,

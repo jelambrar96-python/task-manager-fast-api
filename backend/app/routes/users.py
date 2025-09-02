@@ -15,7 +15,7 @@ from app.core.security import get_password_hash
 users_routers = APIRouter(prefix="/users", tags=["users"])
 
 
-@users_routers.get("/", response_model=list[UserPublic])
+@users_routers.get("/", response_model=List[UserPublic])
 def read_users(
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_admin_user)],

@@ -1,5 +1,5 @@
-
 from datetime import datetime, timezone
+from typing import List
 
 from sqlmodel import Field, ForeignKey, SQLModel, Relationship
 from sqlmodel import Session, select
@@ -16,7 +16,7 @@ class TaskPriority(SQLModel, table=True):
     id : int = Field(primary_key=True)
     desc : str = Field(nullable=False, unique=True)
 
-    tasks: list["TaskDB"] = Relationship(back_populates="priority")
+    tasks: List["TaskDB"] = Relationship(back_populates="priority")
 
 
 class TaskStatus(SQLModel, table=True):

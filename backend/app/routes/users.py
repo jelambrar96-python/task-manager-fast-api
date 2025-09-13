@@ -16,7 +16,7 @@ users_routers = APIRouter(prefix="/users", tags=["users"])
 
 
 @users_routers.get("/", response_model=List[UserPublic])
-def read_users(
+async def read_users(
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_admin_user)],
     offset: int = 0,
@@ -27,7 +27,7 @@ def read_users(
 
 
 @users_routers.post("/", response_model=UserPublic)
-def post_user(
+async def post_user(
     user: UserCreate,
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_admin_user)],
@@ -56,7 +56,7 @@ def post_user(
 
 
 @users_routers.get("/{user_id}", response_model=UserPublic)
-def read_user(
+async def read_user(
     user_id: int,
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
@@ -68,7 +68,7 @@ def read_user(
 
 
 @users_routers.put("/{user_id}", response_model=UserPublic)
-def update_user(
+async def update_user(
     user_id: int,
     useru: UserUpdate,
     session: SessionDep,
@@ -89,14 +89,14 @@ def update_user(
 
 
 @users_routers.get("/me/", response_model=UserPublic)
-def get_me(
+async def get_me(
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
 ):
     return current_user
 
 
 @users_routers.patch("/me/", response_model=UserPublic)
-def update_me(
+async def update_me(
     useru: UserUpdate,
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],

@@ -4,6 +4,8 @@ import os
 import pytest
 from httpx import AsyncClient
 from fastapi import status
+from fastapi.testclient import TestClient
+
 
 from app.core.config import SUPERUSER_PASSWORD, SUPERUSER_USERNAME
 # from app.main import app  # importa tu app principal de FastAPI
@@ -92,8 +94,8 @@ async def test_superuser_can_create_user():
         assert data["email"] == "alice@example.com"
         assert data["enabled"] is True
 
-    if create_response.status_code == 200:
-        assert data["result"] == "Username, email or phone already exists"
+    if create_response.status_code == 400:
+        assert data["detail"] == "Username, email or phone already exists"
 
 
 
@@ -143,11 +145,11 @@ async def test_update_user():
             "email": "bob.builder@example.com",
             "enabled": False,
         }
-        update_response = await ac.patch(
+        update_response = await ac.put(
             f"/users/{user_id}", json=update_payload, headers=headers)
         
         updated_user = update_response.json()
-        print(updated_user)
+        # print(updated_user)
         assert update_response.status_code == 200
 
         assert updated_user["id"] == user_id

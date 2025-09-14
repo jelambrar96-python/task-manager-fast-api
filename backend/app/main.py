@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.core.cors import add_cors_middleware
+from app.core.rate_limiter import startup_redis
 from app.db.database import create_db_and_tables, fill_task_priority_table, create_super_user
 from app.routes.root import root_routers
 from app.routes.tasks import tasks_routers
@@ -13,6 +14,7 @@ from app.routes.users import users_routers
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    startup_redis()
     create_db_and_tables()
     fill_task_priority_table()
     create_super_user()

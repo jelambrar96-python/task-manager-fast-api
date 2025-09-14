@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
-from typing import Annotated, List
+from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import select, delete
 
 
+from app.core.rate_limiter import get_rate_limiter
 from app.db.database import SessionDep
 from app.db.users import get_current_active_user
 from app.db.tasks import priority_desc, get_current_task, get_current_task_comment
@@ -13,7 +14,7 @@ from app.models.task import TaskCommentCreate, TaskCommentPublic, TaskCommentDB,
 from app.models.user import UserPublic
 
 
-tasks_routers = APIRouter(prefix="/tasks", tags=["task"])
+tasks_routers = APIRouter(prefix="/tasks", tags=["task"], dependencies=[Depends(get_rate_limiter)])
 
 # -------------------------------------------------------------------------------------------------
 # task 
@@ -24,9 +25,25 @@ async def get_tasks(
     session: SessionDep,
     current_user: Annotated[UserPublic, Depends(get_current_active_user)],
     offset: int = 0,
-    limit: Annotated[int, Query(le=20)] = 20
+    limit: Annotated[int, Query(le=20)] = 20,
+    created_by: Optional[int] = None,
+    assigned_to: Optional[int] = None,
+    completed : Optional[bool] = None
 ) -> List[TaskPublic]:
-    tasks = session.exec(select(TaskDB).offset(offset).limit(limit)).all()
+    query = select(TaskDB)
+
+    if created_by is not None:
+        query = query.where(TaskDB.created_by == created_by)
+
+    if assigned_to is not None:
+        query = query.where(TaskDB.assigned_to == assigned_to)
+
+    if completed is not None:
+        query = query.where(TaskDB.completed == completed)
+
+    query = query.offset(offset).limit(limit)
+    tasks = session.exec(query).all()
+
     return [
         TaskPublic(
             id=t.id,
@@ -214,6 +231,39 @@ async def update_comment(
 @tasks_routers.get("/statistics")
 async def get_statistics(
     session: SessionDep,
-    current_user: Annotated[UserPublic, Depends(get_current_active_user)]
+    current_user: Annotated[UserPublic, Depends(get_current_active_user)],
+    created_by: Optional[int] = None,
+    assigned_to: Optional[int] = None,
+    completed : Optional[bool] = None,
+    created_at_start: Optional[datetime] = None,  # inclusive
+    created_at_end: Optional[datetime] = None,    # exclusive
+    due_date_at_start: Optional[datetime] = None,
+    due_date_at_end: Optional[datetime] = None,
 ):
-    return { "success": True }
+    
+    def create_stats_query():
+        query = select(TaskDB)
+        if created_by is not None:
+            query = query.where(TaskDB.created_by == created_by)
+        if assigned_to is not None:
+            query = query.where(TaskDB.assigned_to == assigned_to)
+        if created_at_start is not None:
+            query = query.where(TaskDB.created_at >= created_at_start)
+        if created_at_end is not None:
+            query = query.where(TaskDB.created_at < created_at_end)
+        if due_date_at_start is not None:
+            query = query.where(TaskDB.due_date >= due_date_at_start)
+        if due_date_at_end is not None:
+            query = query.where(TaskDB.due_date < due_date_at_end)
+        return query
+
+    num_task_completed = all(session.exec(create_stats_query().where(TaskDB.completed == True)).all())
+    num_task_no_completed = all(session.exec(create_stats_query().where(TaskDB.completed == False)).all())
+    num_task_total = num_task_completed + num_task_no_completed
+    return { 
+        "detail": { 
+            "completed": num_task_completed,
+            "no_completed": num_task_no_completed,
+            "total": num_task_total
+        },
+    }

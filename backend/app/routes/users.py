@@ -9,10 +9,14 @@ from sqlmodel import select
 from app.db.database import SessionDep
 from app.db.users import get_current_active_admin_user, get_current_active_user
 from app.models.user import UserCreate, UserDB, UserPublic, UserUpdate
+from app.core.rate_limiter import get_rate_limiter
 from app.core.security import get_password_hash
 
 
-users_routers = APIRouter(prefix="/users", tags=["users"])
+users_routers = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(get_rate_limiter)])
 
 
 @users_routers.get("/", response_model=List[UserPublic])

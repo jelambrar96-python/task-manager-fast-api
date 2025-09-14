@@ -8,12 +8,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 
 from app.core.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.rate_limiter import get_rate_limiter
 from app.core.security import create_access_token
 from app.db.users import authenticate_user
 from app.models.token import Token
 
 
-token_routes = APIRouter(prefix="/token", tags=["token"])
+token_routes = APIRouter(prefix="/token", tags=["token"], dependencies=[Depends(get_rate_limiter)])
 
 
 @token_routes.post("/")

@@ -5,17 +5,16 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Copy the Pipfile and Pipfile.lock
-COPY Pipfile Pipfile.lock ./
+COPY  requirements.txt .
 
-# Install dependencies using Pipenv
-RUN pip install --no-cache-dir pipenv && \
-    pipenv install --system --deploy --ignore-pipfile
+# Install dependencies using pip
+RUN pip install -r requirements.txt --no-cache-dir
 
-# Create a new user
-# RUN groupadd appuser && useradd -m -s /bin/bash appuser
+# Create a new user if it doesn't already exist
+RUN getent group appuser || groupadd appuser && useradd -m -g appuser -s /bin/bash appuser
 
 # Set the ownership of the application code to the new user
-# RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appuser /app
 
 EXPOSE 8000
 
